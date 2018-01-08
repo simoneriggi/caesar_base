@@ -1,0 +1,366 @@
+#BootStrap: docker
+#From: ubuntu:16.04
+
+Bootstrap: debootstrap
+MirrorURL: http://us.archive.ubuntu.com/ubuntu/
+OSVersion: xenial
+Include: apt
+
+%help
+	You're inside the container. Ajutiti ca Diu t'aiuta!
+
+%labels
+	Maintainer Simone Riggi (INAF-OACT)
+	Version v1.0
+
+%environment
+	#export SOFTDIR=/opt/Software
+	#export SOFTDIR_SRCS=$SOFTDIR/Sources
+	#export SOFTDIR_TAR=$SOFTDIR/TarFiles
+	#export LC_ALL=C
+	#export PATH=/usr/games:$PATH
+
+%post
+
+	#################################
+	###    INSTALL MINIMAL TOOLS
+	#################################
+	# Add main repository
+	apt install -y software-properties-common
+	apt-add-repository -y universe
+
+	# Update system
+	apt-get update
+
+	# Install bash & cshell
+	apt-get -y --no-install-recommends install bash
+
+	#################################
+	###    SETUP
+	#################################
+	# Define env variables
+	export SOFTDIR="/opt/Software"
+	export SOFTDIR_SRCS="$SOFTDIR/Sources"
+	export SOFTDIR_TAR="$SOFTDIR/TarFiles"
+	echo "export SOFTDIR=$SOFTDIR" >> $SINGULARITY_ENVIRONMENT
+	echo "export SOFTDIR_SRCS=$SOFTDIR/Sources" >> $SINGULARITY_ENVIRONMENT
+	echo "export SOFTDIR_TAR=$SOFTDIR/TarFiles" >> $SINGULARITY_ENVIRONMENT
+
+	# Creating software base directory and add it to env 
+	echo "Making software base dir: $SOFTDIR"
+	mkdir -p $SOFTDIR
+	
+	# Creating software source & tar files
+	echo "Making software sources & tar dirs: ($SOFTDIR_SRCS, $SOFTDIR_TAR)"
+	mkdir -p $SOFTDIR_SRCS
+	mkdir -p $SOFTDIR_TAR
+
+	#################################
+	###    PYTHON MODULES
+	#################################
+	# Install python
+	apt-get -y --no-install-recommends install libpython2.7-dev python-setuptools
+	
+	# Install pip & upgrade
+	apt-get -y --no-install-recommends install python-pip
+	pip install --upgrade pip
+
+	# Install python modules
+	pip install numpy astropy pyfits
+
+	#################################
+	###    DEVTOOLS & SYS TOOLS
+	#################################		
+	# Install devel tools
+	apt-get -y --no-install-recommends install gfortran g++ gcc binutils libtool pkg-config build-essential autoconf automake dpkg-dev git cmake
+
+	# Install some libs
+	apt-get -y --no-install-recommends install curl libcurl4-openssl-dev libopenblas-dev 
+
+	# Install some sys tools
+	apt-get -y --no-install-recommends install wget bzip2 nano unzip
+
+	#################################
+	###    BOOST LIBRARIES
+	#################################
+	# Install boost (in Ubuntu 16 version 1.58)
+	apt-get -y --no-install-recommends install libboost-dev
+
+	#################################
+	###    GSL LIBRARIES
+	#################################
+	# Install GSL lib (in Ubuntu 16 version 2.1)
+	apt-get -y --no-install-recommends install libgsl-dev 
+	
+	#################################
+	###    PROTOBUF
+	#################################
+	# Install Google protocol buffer (in Ubuntu 16 version 2.6.1)
+	apt-get -y --no-install-recommends install libprotobuf-dev
+
+	#################################
+	###    LOG4CXX
+	#################################
+	# Install log4cxx (in Ubuntu 10 version 0.10)
+	apt-get -y --no-install-recommends install liblog4cxx-dev
+
+	#################################
+	###    CFITSIO
+	#################################
+	# Install cfitsio (in Ubuntu 16 version 3.370)
+	apt-get -y --no-install-recommends install libcfitsio-dev
+
+	#################################
+	###    OPENMPI
+	#################################
+	# Install openmpi
+	#apt-get -y --no-install-recommends install libopenmpi-dev openmpi-bin openmpi-common
+	
+	#################################
+	###    JSONCPP
+	#################################
+	# Set env variables and create installation dirs
+	export JSONCPP_URL="https://github.com/open-source-parsers/jsoncpp.git"
+	export JSONCPP_SRC_DIR="$SOFTDIR_SRCS/jsoncpp"	
+	export JSONCPP_BUILD_DIR="$SOFTDIR_SRCS/jsoncpp-build"
+	export JSONCPP_INSTALL_DIR="$SOFTDIR/LIB/jsoncpp/trunk"
+	echo "Creating jsoncpp build dir $JSONCPP_BUILD_DIR ..."
+	mkdir -p $JSONCPP_BUILD_DIR
+	echo "Creating jsoncpp install dir $JSONCPP_INSTALL_DIR ..."
+	mkdir -p $JSONCPP_INSTALL_DIR
+
+	# Install jsoncpp
+	cd "$SOFTDIR_SRCS"
+	if [ ! -d "$JSONCPP_SRC_DIR" ] ; then
+		echo "Downloading jsoncpp from github repository $JSONCPP_URL..."
+		git clone "$JSONCPP_URL"
+	else
+		cd $JSONCPP_SRC_DIR
+		git pull
+	fi
+	
+	echo "Entering jsoncpp cmake build dir $JSONCPP_BUILD_DIR"
+	cd "$JSONCPP_BUILD_DIR"
+
+	echo "Configuring cmake build for jsoncpp"
+	cmake -DCMAKE_INSTALL_PREFIX="$JSONCPP_INSTALL_DIR" "$JSONCPP_SRC_DIR"
+
+	echo "Building jsoncpp..."
+	make
+
+	echo "Installing jsoncpp..."
+	make install
+
+	echo "Setting up env variables for jsoncpp..."
+	echo "export JSONCPP_ROOT=$JSONCPP_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
+	echo "export LD_LIBRARY_PATH=$JSONCPP_INSTALL_DIR/lib:$LD_LIBRARY_PATH >> $SINGULARITY_ENVIRONMENT"
+	echo "export PKG_CONFIG_PATH=$JSONCPP_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH >> $SINGULARITY_ENVIRONMENT"
+
+	#################################
+	###    MPICH
+	#################################
+	export MPICH_VERSION="3.2.1"
+	export MPICH_URL="http://www.mpich.org/static/downloads/$MPICH_VERSION/mpich-$MPICH_VERSION.tar.gz"
+	export MPICH_SRC_DIR="$SOFTDIR_SRCS/mpich-$MPICH_VERSION"	
+	export MPICH_INSTALL_DIR="$SOFTDIR/LIB/mpich/v$MPICH_VERSION"
+	echo "Creating mpich install dir $MPICH_INSTALL_DIR ..."
+	mkdir -p $MPICH_INSTALL_DIR
+
+	# Install mpich
+	if [ ! -d "$MPICH_SRC_DIR" ] ; then
+		# Download mpich
+		echo "Downloading mpich from url $MPICH_URL ..."
+		cd "$SOFTDIR_TAR"
+		wget -nc -O "mpich$MPICH_VERSION.tar.gz" "$MPICH_URL" 
+	
+		# Untar mpich
+		echo "Untar mpich in source directory $SOFTDIR_SRCS ..."
+		cd "$SOFTDIR_SRCS"
+		tar -xzvf "$SOFTDIR_TAR/mpich$MPICH_VERSION.tar.gz"
+	fi 
+	
+	echo "Entering mpich source dir $MPICH_SRC_DIR"
+	cd "$MPICH_SRC_DIR"
+
+	echo "Configuring mpich build..."
+	./configure --prefix="$MPICH_INSTALL_DIR"
+
+	echo "Building mpich..."
+	make
+
+	echo "Installing mpich..."
+	make install
+
+	echo "Setting up env variables for mpich..."
+	echo "export MPI_DIR=$MPICH_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
+	echo "export PATH=$MPICH_INSTALL_DIR/bin:$PATH >> $SINGULARITY_ENVIRONMENT"
+	echo "export LD_LIBRARY_PATH=$MPICH_INSTALL_DIR/lib:$LD_LIBRARY_PATH >> $SINGULARITY_ENVIRONMENT"
+	echo "export PKG_CONFIG_PATH=$$MPICH_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH >> $SINGULARITY_ENVIRONMENT"
+
+	#################################
+	###    OPENMPI
+	#################################
+	export OPENMPI_VERSION="2.1.2"
+	export OPENMPI_URL="https://www.open-mpi.org/software/ompi/v2.1/downloads/openmpi-$OPENMPI_VERSION.tar.gz"
+	export OPENMPI_SRC_DIR="$SOFTDIR_SRCS/openmpi-$OPENMPI_VERSION"	
+	export OPENMPI_INSTALL_DIR="$SOFTDIR/LIB/openmpi/v$OPENMPI_VERSION"
+	echo "Creating openmpi install dir $OPENMPI_INSTALL_DIR ..."
+	mkdir -p $OPENMPI_INSTALL_DIR
+
+	# Install openmpi
+	if [ ! -d "$OPENMPI_SRC_DIR" ] ; then
+		# Download openmpi
+		echo "Downloading openmpi from url $OPENMPI_URL ..."
+		cd "$SOFTDIR_TAR"
+		wget -nc -O "openmpi$OPENMPI_VERSION.tar.gz" "$OPENMPI_URL" 
+	
+		# Untar openmpi
+		echo "Untar openmpi in source directory $SOFTDIR_SRCS ..."
+		cd "$SOFTDIR_SRCS"
+		tar -xzvf "$SOFTDIR_TAR/openmpi$OPENMPI_VERSION.tar.gz"
+	fi 
+	
+	echo "Entering openmpi source dir $OPENMPI_SRC_DIR"
+	cd "$OPENMPI_SRC_DIR"
+
+	echo "Configuring openmpi build..."
+	./configure --prefix="$OPENMPI_INSTALL_DIR"
+
+	echo "Building & installing openmpi..."
+	make all install
+
+	echo "Setting up env variables for mpich..."
+	echo "export OPENMPI_DIR=$OPENMPI_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
+	echo "export PATH=$OPENMPI_INSTALL_DIR/bin:$PATH >> $SINGULARITY_ENVIRONMENT"
+	echo "export LD_LIBRARY_PATH=$OPENMPI_INSTALL_DIR/lib:$LD_LIBRARY_PATH >> $SINGULARITY_ENVIRONMENT"
+	echo "export PKG_CONFIG_PATH=$$OPENMPI_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH >> $SINGULARITY_ENVIRONMENT"
+
+	#################################
+	###    ROOT
+	#################################
+	export ROOT_VERSION="6.12.04" # 
+	export ROOT_URL="https://root.cern.ch/download/root_v$ROOT_VERSION"'.source.tar.gz'
+	export ROOT_SRC_DIR="$SOFTDIR_SRCS/root-$ROOT_VERSION"	
+	export ROOT_BUILD_DIR="$SOFTDIR_SRCS/root-$ROOT_VERSION"'-build'
+	export ROOT_INSTALL_DIR="$SOFTDIR/ROOT/v$ROOT_VERSION"
+	echo "Creating ROOT build dir $ROOT_BUILD_DIR ..."
+	mkdir -p $ROOT_BUILD_DIR
+	echo "Creating ROOT install dir $ROOT_INSTALL_DIR ..."
+	mkdir -p $ROOT_INSTALL_DIR
+	
+	# Download & Unzip ROOT
+	ls -la $SOFTDIR_SRCS
+	if [ ! -d "$ROOT_SRC_DIR" ] ; then
+		# Download ROOT
+		echo "Downloading ROOT from url $ROOT_URL ..."
+		cd "$SOFTDIR_TAR"
+		wget -nc -O "root$ROOT_VERSION.tar.gz" "$ROOT_URL" 
+	
+		# Untar ROOT
+		echo "Untar ROOT in source directory $SOFTDIR_SRCS ..."
+		cd "$SOFTDIR_SRCS"
+		tar -xzvf "$SOFTDIR_TAR/root$ROOT_VERSION.tar.gz"
+	fi 
+
+	# Install ROOT mandatory dependencies
+	apt-get -y --no-install-recommends install libx11-dev libxpm-dev libxft-dev libxext-dev libpng12-dev libjpeg-dev
+
+	# Configure ROOT build
+	echo "Configuring cmake build for ROOT..."
+	cd "$ROOT_BUILD_DIR"
+	cmake -DCMAKE_INSTALL_PREFIX="$ROOT_INSTALL_DIR" -Dfitsio=ON -Dgsl_shared=ON -Dmathmore=ON -Dpython=ON -Droofit=ON -Dshared=ON -Dsoversion=ON -Dtmva=ON -Dunuran=ON -Dx11=ON -Dxft=ON "$ROOT_SRC_DIR"
+
+	# Building ROOT
+	echo "Building ROOT..."
+	make
+
+	# Installing ROOT
+	echo "Installing ROOT..."
+	make install
+
+	# Setting environment variables
+	echo "Setting ROOT env variables..."
+	echo "export ROOTSYS=$ROOT_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
+	echo "export PATH=$ROOTSYS/bin:$PATH" >> $SINGULARITY_ENVIRONMENT
+	echo "export LD_LIBRARY_PATH=$ROOTSYS/lib:$ROOTSYS/root/lib:$LD_LIBRARY_PATH" >> $SINGULARITY_ENVIRONMENT
+	echo "export PYTHONPATH=$ROOTSYS/lib:$PYTHONPATH" >> $SINGULARITY_ENVIRONMENT
+
+	#################################
+	###    OPENCV
+	#################################
+	export OPENCV_VERSION="3.4.0"
+	export OPENCV_URL="https://github.com/opencv/opencv/archive/$OPENCV_VERSION.zip"
+	export OPENCV_EXTRA_MODULES_REPO_URL="https://github.com/opencv/opencv_contrib/archive/$OPENCV_VERSION.zip"
+	export OPENCV_SRC_DIR="$SOFTDIR_SRCS/opencv-$OPENCV_VERSION"	
+	export OPENCV_EXTRA_MODULES_SRC_DIR="$SOFTDIR_SRCS/opencv_contrib-$OPENCV_VERSION"		
+	export OPENCV_BUILD_DIR="$SOFTDIR_SRCS/opencv-$OPENCV_VERSION"'-build'
+	export OPENCV_INSTALL_DIR="$SOFTDIR/OpenCV/v$OPENCV_VERSION"
+	echo "Creating OpenCV build dir $OPENCV_BUILD_DIR ..."
+	mkdir -p $OPENCV_BUILD_DIR
+	echo "Creating OpenCV install dir $OPENCV_INSTALL_DIR ..."
+	mkdir -p $OPENCV_INSTALL_DIR
+
+	# Download & Unzip OpenCV
+	ls -la $SOFTDIR_SRCS
+	if [ ! -d "$OPENCV_SRC_DIR" ] ; then
+		# Download OpenCV
+		echo "Downloading OpenCV from url $OPENCV_URL ..."
+		cd "$SOFTDIR_TAR"
+		wget -nc -O "opencv$OPENCV_VERSION.zip" "$OPENCV_URL" 
+	
+		# Unzip OpenCV
+		echo "Unzipping OpenCV in source directory $SOFTDIR_SRCS ..."
+		cd "$SOFTDIR_SRCS"
+		unzip -n "$SOFTDIR_TAR/opencv$OPENCV_VERSION.zip"
+	fi 
+
+	# Downwload & Unzip OpenCV extra modules
+	ls -la $SOFTDIR_SRCS
+	if [ ! -d "$OPENCV_EXTRA_MODULES_SRC_DIR" ] ; then
+		# Download OpenCV extra modules
+		echo "Downloading OpenCV extra modules from url $OPENCV_EXTRA_MODULES_REPO_URL ..."
+		cd "$SOFTDIR_TAR"
+		wget -nc -O "opencv_contrib$OPENCV_VERSION.zip" "$OPENCV_EXTRA_MODULES_REPO_URL"
+
+		# Unzip OpenCV extra modules	
+		echo "Unzipping OpenCV extra modules in source directory $SOFTDIR_SRCS ..."
+		cd "$SOFTDIR_SRCS"
+		unzip -n "$SOFTDIR_TAR/opencv_contrib$OPENCV_VERSION.zip"
+	fi
+	
+	# Install OpenCV dependencies
+	echo "Install OpenCV dependencies..."
+	apt-get -y --no-install-recommends install libgtk2.0-dev libavcodec-dev libavformat-dev libswscale-dev
+	
+	# Configure OpenCV build
+	echo "Configuring cmake build for OpenCV..."
+	cd "$OPENCV_BUILD_DIR"
+	cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX="$OPENCV_INSTALL_DIR" -DOPENCV_EXTRA_MODULES_PATH="$OPENCV_EXTRA_MODULES_SRC_DIR/modules" "$OPENCV_SRC_DIR"
+
+	# Building OpenCV
+	echo "Building OpenCV..."
+	make
+
+	# Installing OpenCV
+	echo "Installing OpenCV..."
+	make install
+
+	# Setting environment variables
+	echo "Setting OpenCV env variables..."
+	echo "export OPENCV_DIR=$OPENCV_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
+	echo "export PATH=$OPENCV_DIR/bin:$PATH" >> $SINGULARITY_ENVIRONMENT
+	echo "export LD_LIBRARY_PATH=$OPENCV_INSTALL_DIR/lib:$LD_LIBRARY_PATH" >> $SINGULARITY_ENVIRONMENT
+	echo "export PKG_CONFIG_PATH=$OPENCV_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH" >> $SINGULARITY_ENVIRONMENT
+	
+	#################################
+	###    R PROJECT
+	#################################
+	#apt-get -y install r-base-core
+	
+	# Install required R packages (this is an exampl, replace with my R modules...)
+  #R --slave -e 'install.packages("devtools", repos="https://cloud.r-project.org/")'
+  #R --slave -e 'devtools::install_github("rstudio/tensorflow")'
+
+
+%runscript
+	#fortune | cowsay | lolcat
