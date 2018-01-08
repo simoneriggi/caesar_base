@@ -1,7 +1,10 @@
-Bootstrap: debootstrap
-MirrorURL: http://us.archive.ubuntu.com/ubuntu/
-OSVersion: xenial
-Include: apt
+BootStrap: docker
+From: ubuntu:16.04
+
+#Bootstrap: debootstrap
+#MirrorURL: http://us.archive.ubuntu.com/ubuntu/
+#OSVersion: xenial
+#Include: apt
 
 %help
 	You're inside the container. Ajutiti ca Diu t'aiuta!
