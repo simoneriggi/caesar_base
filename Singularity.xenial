@@ -14,13 +14,16 @@ From: ubuntu:16.04
 	Version v1.0
 
 %environment
-	. /etc/profile.d/setupSoft.sh
+	#. /etc/profile.d/setupSoft.sh
 
 %post
 
 	#################################
 	###    INSTALL MINIMAL TOOLS
 	#################################
+	# Update system
+	apt-get update
+
 	# Add main repository
 	apt install -y software-properties-common
 	apt-add-repository -y universe
@@ -396,7 +399,5 @@ From: ubuntu:16.04
   #R --slave -e 'devtools::install_github("rstudio/tensorflow")'
 
 	
-	
-
 %runscript
 	#fortune | cowsay | lolcat
