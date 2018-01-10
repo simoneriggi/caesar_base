@@ -69,6 +69,10 @@ From: ubuntu:16.04
 	# Create a setvars file
 	export SETVARS_FILE="/etc/profile.d/setupSoft.sh"
 	echo "#!/bin/sh" > "$SETVARS_FILE"
+	echo 'export SOFTDIR='"$SOFTDIR" >> "$SETVARS_FILE"
+	echo 'export SOFTDIR_SRCS='"$SOFTDIR_SRCS" >> "$SETVARS_FILE"
+	echo 'export SOFTDIR_TAR='"$SOFTDIR_TAR" >> "$SETVARS_FILE"
+	echo '' >> "$SETVARS_FILE"
 
 	#################################
 	###    PYTHON MODULES
@@ -88,6 +92,8 @@ From: ubuntu:16.04
 
 	# Set env vars
 	export PYTHONPATH=/usr/lib/python2.7/site-packages:$PYTHONPATH
+	echo '### PYTHON MODULES ###' >> "$SETVARS_FILE"
+	echo 'export PYTHONPATH='"$PYTHONPATH" >> "$SETVARS_FILE"
 
 	#################################
 	###    DEVTOOLS & SYS TOOLS
@@ -117,7 +123,7 @@ From: ubuntu:16.04
 	###    PROTOBUF
 	#################################
 	# Install Google protocol buffer (in Ubuntu 16 version 2.6.1)
-	apt-get -y --no-install-recommends install libprotobuf-dev
+	apt-get -y --no-install-recommends install libprotobuf-dev protobuf-compiler
 
 	#################################
 	###    LOG4CXX
@@ -164,7 +170,7 @@ From: ubuntu:16.04
 	cd "$JSONCPP_BUILD_DIR"
 
 	echo "Configuring cmake build for jsoncpp"
-	cmake -DCMAKE_INSTALL_PREFIX="$JSONCPP_INSTALL_DIR" "$JSONCPP_SRC_DIR"
+	cmake -DCMAKE_INSTALL_PREFIX="$JSONCPP_INSTALL_DIR" -DBUILD_SHARED_LIBS=ON -DJSONCPP_WITH_PKGCONFIG_SUPPORT=ON "$JSONCPP_SRC_DIR"
 
 	echo "Building jsoncpp..."
 	make
