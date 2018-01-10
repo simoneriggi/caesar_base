@@ -7,7 +7,19 @@ From: ubuntu:16.04
 #Include: apt
 
 %help
-	You're inside the container. Ajutiti ca Diu t'aiuta!
+	This container is a base container for CAESAR. It contains all dependencies needed to build CAESAR:
+		- ROOT
+		- OpenCV
+		- BOOST
+		- Log4Cxx
+		- Jsoncpp
+		- cfitsio
+		- protobuf
+		- MPICH
+		- OpenMPI
+		- python 2.7 + modules (numpy, astropy, pyfits)
+	
+	The container is used mainly to build CAESAR upon it.
 
 %labels
 	Maintainer Simone Riggi (INAF-OACT)
@@ -70,6 +82,12 @@ From: ubuntu:16.04
 
 	# Install python modules
 	pip install numpy astropy pyfits
+	pip install numpy --upgrade
+	pip install astropy --upgrade
+	pip install pyfits --upgrade
+
+	# Set env vars
+	export PYTHONPATH=/usr/lib/python2.7/site-packages:$PYTHONPATH
 
 	#################################
 	###    DEVTOOLS & SYS TOOLS
@@ -87,7 +105,7 @@ From: ubuntu:16.04
 	###    BOOST LIBRARIES
 	#################################
 	# Install boost (in Ubuntu 16 version 1.58)
-	apt-get -y --no-install-recommends install libboost-dev
+	apt-get -y --no-install-recommends install libboost-all-dev
 
 	#################################
 	###    GSL LIBRARIES
@@ -156,9 +174,9 @@ From: ubuntu:16.04
 
 	echo "Setting up env variables for jsoncpp..."
 	echo "export JSONCPP_ROOT=$JSONCPP_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
-	echo "export LD_LIBRARY_PATH=$JSONCPP_INSTALL_DIR/lib:$LD_LIBRARY_PATH" >> $SINGULARITY_ENVIRONMENT
-	echo "export PKG_CONFIG_PATH=$JSONCPP_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH" >> $SINGULARITY_ENVIRONMENT
-
+	export LD_LIBRARY_PATH=$JSONCPP_INSTALL_DIR/lib:$LD_LIBRARY_PATH
+	export PKG_CONFIG_PATH=$JSONCPP_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
+	
 	echo '### JSONCPP ###' >> "$SETVARS_FILE"
 	echo 'export JSONCPP_ROOT='"$JSONCPP_INSTALL_DIR" >> "$SETVARS_FILE"
 	echo 'export LD_LIBRARY_PATH=$JSONCPP_ROOT/lib:$LD_LIBRARY_PATH' >> "$SETVARS_FILE"
@@ -202,10 +220,10 @@ From: ubuntu:16.04
 
 	echo "Setting up env variables for mpich..."
 	echo "export MPI_DIR=$MPICH_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
-	echo "export PATH=$MPICH_INSTALL_DIR/bin:$PATH" >> $SINGULARITY_ENVIRONMENT
-	echo "export LD_LIBRARY_PATH=$MPICH_INSTALL_DIR/lib:$LD_LIBRARY_PATH" >> $SINGULARITY_ENVIRONMENT
-	echo "export PKG_CONFIG_PATH=$$MPICH_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH" >> $SINGULARITY_ENVIRONMENT
-
+	export PATH=$MPICH_INSTALL_DIR/bin:$PATH
+	export LD_LIBRARY_PATH=$MPICH_INSTALL_DIR/lib:$LD_LIBRARY_PATH
+	export PKG_CONFIG_PATH=$MPICH_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
+	
 	echo '### MPICH ###' >> "$SETVARS_FILE"
 	echo 'export MPI_DIR='"$MPICH_INSTALL_DIR" >> "$SETVARS_FILE"
 	echo 'export PATH=$MPI_DIR/bin:$PATH' >> "$SETVARS_FILE"
@@ -247,10 +265,10 @@ From: ubuntu:16.04
 
 	echo "Setting up env variables for mpich..."
 	echo "export OPENMPI_DIR=$OPENMPI_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
-	echo "export PATH=$OPENMPI_INSTALL_DIR/bin:$PATH" >> $SINGULARITY_ENVIRONMENT
-	echo "export LD_LIBRARY_PATH=$OPENMPI_INSTALL_DIR/lib:$LD_LIBRARY_PATH" >> $SINGULARITY_ENVIRONMENT
-	echo "export PKG_CONFIG_PATH=$OPENMPI_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH" >> $SINGULARITY_ENVIRONMENT
-
+	export PATH=$OPENMPI_INSTALL_DIR/bin:$PATH
+	export LD_LIBRARY_PATH=$OPENMPI_INSTALL_DIR/lib:$LD_LIBRARY_PATH
+	export PKG_CONFIG_PATH=$OPENMPI_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
+	
 	echo '### OPENMPI ###' >> "$SETVARS_FILE"
 	echo 'export OPENMPI_DIR='"$OPENMPI_INSTALL_DIR" >> "$SETVARS_FILE"
 	echo 'export PATH=$OPENMPI_DIR/bin:$PATH' >> "$SETVARS_FILE"
@@ -305,15 +323,16 @@ From: ubuntu:16.04
 	mkdir -p $ROOT_INSTALL_DIR/etc/cmake
 	echo "Copying FindROOT.cmake in $ROOT_INSTALL_DIR/etc/cmake dir..."
 	cp $ROOT_SRC_DIR/etc/cmake/FindROOT.cmake $ROOT_INSTALL_DIR/etc/cmake
+	cp $ROOT_SRC_DIR/etc/cmake/RootUseFile.cmake $ROOT_INSTALL_DIR/etc/cmake
 	ls $ROOT_INSTALL_DIR/etc/cmake
 
 	# Setting environment variables
 	echo "Setting ROOT env variables..."
 	echo "export ROOTSYS=$ROOT_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
-	echo "export PATH=$ROOT_INSTALL_DIR/bin:$PATH" >> $SINGULARITY_ENVIRONMENT
-	echo "export LD_LIBRARY_PATH=$ROOT_INSTALL_DIR/lib:$ROOT_INSTALL_DIR/root/lib:$LD_LIBRARY_PATH" >> $SINGULARITY_ENVIRONMENT
-	echo "export PYTHONPATH=$ROOT_INSTALL_DIR/lib:$PYTHONPATH" >> $SINGULARITY_ENVIRONMENT
-
+	export PATH=$ROOT_INSTALL_DIR/bin:$PATH
+	export LD_LIBRARY_PATH=$ROOT_INSTALL_DIR/lib:$ROOT_INSTALL_DIR/root/lib:$LD_LIBRARY_PATH
+	export PYTHONPATH=$ROOT_INSTALL_DIR/lib:$PYTHONPATH
+	
 	echo '### ROOT ###' >> "$SETVARS_FILE"
 	echo 'export ROOTSYS='"$ROOT_INSTALL_DIR" >> "$SETVARS_FILE"
 	echo 'export PATH=$ROOTSYS/bin:$PATH' >> "$SETVARS_FILE"
@@ -384,9 +403,9 @@ From: ubuntu:16.04
 	# Setting environment variables
 	echo "Setting OpenCV env variables..."
 	echo "export OPENCV_DIR=$OPENCV_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
-	echo "export PATH=$OPENCV_INSTALL_DIR/bin:$PATH" >> $SINGULARITY_ENVIRONMENT
-	echo "export LD_LIBRARY_PATH=$OPENCV_INSTALL_DIR/lib:$LD_LIBRARY_PATH" >> $SINGULARITY_ENVIRONMENT
-	echo "export PKG_CONFIG_PATH=$OPENCV_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH" >> $SINGULARITY_ENVIRONMENT
+	export PATH=$OPENCV_INSTALL_DIR/bin:$PATH
+	export LD_LIBRARY_PATH=$OPENCV_INSTALL_DIR/lib:$LD_LIBRARY_PATH
+	export PKG_CONFIG_PATH=$OPENCV_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
 		
 	echo '### OPENCV ###' >> "$SETVARS_FILE"
 	echo 'export OPENCV_DIR='"$OPENCV_INSTALL_DIR" >> "$SETVARS_FILE"
@@ -404,6 +423,15 @@ From: ubuntu:16.04
   #R --slave -e 'install.packages("devtools", repos="https://cloud.r-project.org/")'
   #R --slave -e 'devtools::install_github("rstudio/tensorflow")'
 
-	
+	#################################
+	###    SET ENV VARS
+	#################################
+	echo "export PATH=$PATH" >> $SINGULARITY_ENVIRONMENT
+	echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $SINGULARITY_ENVIRONMENT
+	echo "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $SINGULARITY_ENVIRONMENT
+	echo "export PYTHONPATH=$PYTHONPATH" >> $SINGULARITY_ENVIRONMENT
+
+
+
 %runscript
-	#fortune | cowsay | lolcat
+	printenv
