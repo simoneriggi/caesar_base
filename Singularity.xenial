@@ -94,6 +94,7 @@ From: ubuntu:16.04
 	export PYTHONPATH=/usr/lib/python2.7/site-packages:$PYTHONPATH
 	echo '### PYTHON MODULES ###' >> "$SETVARS_FILE"
 	echo 'export PYTHONPATH='"$PYTHONPATH" >> "$SETVARS_FILE"
+	echo '' >> "$SETVARS_FILE"
 
 	#################################
 	###    DEVTOOLS & SYS TOOLS
@@ -189,6 +190,9 @@ From: ubuntu:16.04
 	echo 'export PKG_CONFIG_PATH=$JSONCPP_ROOT/lib/pkgconfig:$PKG_CONFIG_PATH' >> "$SETVARS_FILE"
 	echo '' >> "$SETVARS_FILE"
 
+	echo "Remove jsoncpp source ($JSONCPP_SRC_DIR) & build ($JSONCPP_BUILD_DIR) directories ..."
+	rm -rf $JSONCPP_SRC_DIR $JSONCPP_BUILD_DIR
+
 	#################################
 	###    MPICH
 	#################################
@@ -237,6 +241,9 @@ From: ubuntu:16.04
 	echo 'export PKG_CONFIG_PATH=$MPI_DIR/lib/pkgconfig:$PKG_CONFIG_PATH' >> "$SETVARS_FILE"
 	echo '' >> "$SETVARS_FILE"
 
+	echo "Remove MPICH source directory $MPICH_SRC_DIR ..."
+	rm -rf $MPICH_SRC_DIR
+
 	#################################
 	###    OPENMPI
 	#################################
@@ -281,6 +288,9 @@ From: ubuntu:16.04
 	echo 'export LD_LIBRARY_PATH=$OPENMPI_DIR/lib:$LD_LIBRARY_PATH' >> "$SETVARS_FILE"
 	echo 'export PKG_CONFIG_PATH=$OPENMPI_DIR/lib/pkgconfig:$PKG_CONFIG_PATH' >> "$SETVARS_FILE"
 	echo '' >> "$SETVARS_FILE"
+
+	echo "Remove OPENMPI source directory $OPENMPI_SRC_DIR ..."
+	rm -rf $OPENMPI_SRC_DIR
 
 	#################################
 	###    ROOT
@@ -345,6 +355,9 @@ From: ubuntu:16.04
 	echo 'export LD_LIBRARY_PATH=$ROOTSYS/lib:$ROOTSYS/root/lib:$LD_LIBRARY_PATH' >> "$SETVARS_FILE"
 	echo 'export PYTHONPATH=$ROOTSYS/lib:$PYTHONPATH' >> "$SETVARS_FILE"
 	echo '' >> "$SETVARS_FILE"
+
+	echo "Remove ROOT source ($ROOT_SRC_DIR) & build directories ($ROOT_BUILD_DIR) ..."
+	rm -rf $ROOT_SRC_DIR $ROOT_BUILD_DIR
 
 	#################################
 	###    OPENCV
@@ -419,6 +432,9 @@ From: ubuntu:16.04
 	echo 'export LD_LIBRARY_PATH=$OPENCV_DIR/lib:$LD_LIBRARY_PATH' >> "$SETVARS_FILE"
 	echo 'export PKG_CONFIG_PATH=$OPENCV_DIR/lib/pkgconfig:$PKG_CONFIG_PATH' >> "$SETVARS_FILE"
 	echo '' >> "$SETVARS_FILE"
+
+	echo "Remove OpenCV source ($OPENCV_SRC_DIR) & build directories ($OPENCV_BUILD_DIR) ..."
+	rm -rf $OPENCV_SRC_DIR $OPENCV_BUILD_DIR
 
 	#################################
 	###    R PROJECT
