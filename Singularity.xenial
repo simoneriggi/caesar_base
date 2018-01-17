@@ -116,8 +116,8 @@ From: ubuntu:16.04
 	pip install ipython
 
 	# Set env vars
-	export PYTHONPATH=/usr/lib/python2.7/site-packages:/usr/local/lib/python2.7/dist-packages:$PYTHONPATH
-	
+	export PYTHONPATH=/usr/lib/python2.7:/usr/lib/python2.7/site-packages:/usr/lib/python2.7/dist-packages:/usr/lib/python2.7/plat-x86_64-linux-gnu:/usr/lib/python2.7/lib-tk:/usr/lib/python2.7/lib-old:/usr/lib/python2.7/lib-dynload:/usr/local/lib/python2.7/dist-packages:$PYTHONPATH
+
 	echo '### PYTHON MODULES ###' >> "$SETVARS_FILE"
 	echo 'export PYTHONPATH='"$PYTHONPATH" >> "$SETVARS_FILE"
 	echo '' >> "$SETVARS_FILE"
@@ -205,18 +205,19 @@ From: ubuntu:16.04
 
 	echo "Setting up env variables for jsoncpp..."
 	echo "export JSONCPP_ROOT=$JSONCPP_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
-	export LD_LIBRARY_PATH=$JSONCPP_INSTALL_DIR/lib:$LD_LIBRARY_PATH
-	export PKG_CONFIG_PATH=$JSONCPP_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JSONCPP_INSTALL_DIR/lib
+	export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$JSONCPP_INSTALL_DIR/lib/pkgconfig
 	
 	echo '### JSONCPP ###' >> "$SETVARS_FILE"
 	echo 'export JSONCPP_ROOT='"$JSONCPP_INSTALL_DIR" >> "$SETVARS_FILE"
-	echo 'export LD_LIBRARY_PATH=$JSONCPP_ROOT/lib:$LD_LIBRARY_PATH' >> "$SETVARS_FILE"
-	echo 'export PKG_CONFIG_PATH=$JSONCPP_ROOT/lib/pkgconfig:$PKG_CONFIG_PATH' >> "$SETVARS_FILE"
+	echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JSONCPP_ROOT/lib' >> "$SETVARS_FILE"
+	echo 'export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$JSONCPP_ROOT/lib/pkgconfig' >> "$SETVARS_FILE"
 	echo '' >> "$SETVARS_FILE"
 
 	#echo "Remove jsoncpp source ($JSONCPP_SRC_DIR) & build ($JSONCPP_BUILD_DIR) directories ..."
 	rm -rf $JSONCPP_SRC_DIR $JSONCPP_BUILD_DIR
 
+	
 	#################################
 	###    MPICH
 	#################################
@@ -270,6 +271,7 @@ From: ubuntu:16.04
 	echo "Remove MPICH tar file $SOFTDIR_TAR/mpich$MPICH_VERSION.tar.gz ..."
 	rm -rf $SOFTDIR_TAR/mpich$MPICH_VERSION.tar.gz || :
 
+	
 	#################################
 	###    OPENMPI
 	#################################
@@ -302,6 +304,7 @@ From: ubuntu:16.04
 	echo "Building & installing openmpi..."
 	make all install
 
+	## NB: Prepend OPENMPI to system path to allow CAESAR find these instead of system version
 	echo "Setting up env variables for mpich..."
 	echo "export OPENMPI_DIR=$OPENMPI_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
 	export PATH=$OPENMPI_INSTALL_DIR/bin:$PATH
@@ -320,67 +323,7 @@ From: ubuntu:16.04
 	echo "Remove OPENMPI tar file $SOFTDIR_TAR/openmpi$OPENMPI_VERSION.tar.gz ..."
 	rm -rf $SOFTDIR_TAR/openmpi$OPENMPI_VERSION.tar.gz || :
 
-	#################################
-	###    CASA NRAO
-	#################################
-	export CASA_VERSION="5.1.1" # 
-	export CASA_VERSION_MINOR="5"
-	export CASA_URL="https://casa.nrao.edu/download/distro/linux/release/el7/casa-release-$CASA_VERSION-$CASA_VERSION_MINOR"'.el7.tar.gz'
-	export CASA_UNTAR_DIR="casa-release-$CASA_VERSION-$CASA_VERSION_MINOR.el7"
-	export CASA_BASE_DIR="$SOFTDIR/CASA"
-	export CASA_INSTALL_DIR="$CASA_BASE_DIR/v$CASA_VERSION"
-	export CASASRC="$CASA_BASE_DIR/.casa"
-	export CASA_LOGON_FILE="$CASASRC/init.py"
 
-	echo "Creating CASA base dir $CASA_BASE_DIR ..."
-	mkdir -p $CASA_BASE_DIR
-
-	echo "Creating CASA init dir $CASASRC with other write permission..."
-	mkdir -p $CASASRC
-	chmod -R a+rwx $CASASRC
-
-	# Download & Unzip CASA
-	ls -la $SOFTDIR_SRCS
-	if [ ! -d "$CASA_INSTALL_DIR" ] ; then
-		# Download CASA
-		echo "Downloading CASA from url $CASA_URL ..."
-		cd "$SOFTDIR_TAR"
-		wget -nc -O "casa$CASA_VERSION.tar.gz" "$CASA_URL" 
-	
-		# Untar CASA
-		echo "Untar CASA in casa install directory $CASA_BASE_DIR ..."
-		cd "$CASA_BASE_DIR"
-		tar -xzvf "$SOFTDIR_TAR/casa$CASA_VERSION.tar.gz"
-	
-		# Rename CASA
-		echo "Renaming untar dir $CASA_UNTAR_DIR in v$CASA_VERSION"
-		mv "$CASA_UNTAR_DIR" "v$CASA_VERSION"
-	fi 
-
-	# Setting environment variables
-	# NB: Do not add CASA python lib dir to PYTHONPATH because it will screw up python (changes site.py with CASA site.py)
-	echo "Setting CASA env variables..."
-	echo "export CASAPATH=$CASA_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
-	echo "export CASA_DIR=$CASA_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
-	echo "export CASASRC=$CASASRC" >> $SINGULARITY_ENVIRONMENT
-	export PATH=$CASA_INSTALL_DIR/bin:$PATH
-	##export PYTHONPATH=$CASA_INSTALL_DIR/lib/python2.7:$CASA_INSTALL_DIR/lib/python2.7/__casac__:$PYTHONPATH
-	
-	echo '### CASA ###' >> "$SETVARS_FILE"
-	echo 'export CASAPATH='"$CASA_INSTALL_DIR" >> "$SETVARS_FILE"
-	echo 'export CASA_DIR='"$CASA_INSTALL_DIR" >> "$SETVARS_FILE"
-	echo 'export CASASRC='"$CASASRC" >> "$SETVARS_FILE"
-	echo 'export PATH=$CASA_DIR/bin:$PATH' >> "$SETVARS_FILE"
-	##echo 'export PYTHONPATH=$CASA_INSTALL_DIR/lib/python2.7:$PYTHONPATH' >> "$SETVARS_FILE"
-	echo '' >> "$SETVARS_FILE"
-
-	# Create logon file under $CASASRC dir
-	echo "Creating CASA logon file in $CASASRC dir ..."
-	echo 'import sys' > "$CASA_LOGON_FILE"
-	echo "sys.path = [''] + sys.path" >> "$CASA_LOGON_FILE"
-
-	echo "Remove CASA tar file $SOFTDIR_TAR/casa$CASA_VERSION.tar.gz ..."
-	rm -rf $SOFTDIR_TAR/casa$CASA_VERSION.tar.gz || :
 
 	#################################
 	###    ROOT
@@ -438,16 +381,16 @@ From: ubuntu:16.04
 	echo "Setting ROOT env variables..."
 	echo "export ROOTSYS=$ROOT_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
 	echo "export ROOT_LOGON_DIR=$ROOT_LOGON_DIR" >> $SINGULARITY_ENVIRONMENT
-	export PATH=$ROOT_INSTALL_DIR/bin:$PATH
-	export LD_LIBRARY_PATH=$ROOT_INSTALL_DIR/lib:$ROOT_INSTALL_DIR/root/lib:$LD_LIBRARY_PATH
-	export PYTHONPATH=$ROOT_INSTALL_DIR/lib:$PYTHONPATH
+	export PATH=$PATH:$ROOT_INSTALL_DIR/bin
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT_INSTALL_DIR/lib:$ROOT_INSTALL_DIR/root/lib
+	export PYTHONPATH=$PYTHONPATH:$ROOT_INSTALL_DIR/lib
 	
 	echo '### ROOT ###' >> "$SETVARS_FILE"
 	echo 'export ROOTSYS='"$ROOT_INSTALL_DIR" >> "$SETVARS_FILE"
 	echo 'export ROOT_LOGON_DIR='"$ROOT_LOGON_DIR" >> "$SETVARS_FILE"
-	echo 'export PATH=$ROOTSYS/bin:$PATH' >> "$SETVARS_FILE"
-	echo 'export LD_LIBRARY_PATH=$ROOTSYS/lib:$ROOTSYS/root/lib:$LD_LIBRARY_PATH' >> "$SETVARS_FILE"
-	echo 'export PYTHONPATH=$ROOTSYS/lib:$PYTHONPATH' >> "$SETVARS_FILE"
+	echo 'export PATH=$PATH:$ROOTSYS/bin' >> "$SETVARS_FILE"
+	echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOTSYS/lib:$ROOTSYS/root/lib' >> "$SETVARS_FILE"
+	echo 'export PYTHONPATH=$PYTHONPATH:$ROOTSYS/lib' >> "$SETVARS_FILE"
 	echo '' >> "$SETVARS_FILE"
 
 	# Editing systemrc rootlogon line	
@@ -527,15 +470,15 @@ From: ubuntu:16.04
 	# Setting environment variables
 	echo "Setting OpenCV env variables..."
 	echo "export OPENCV_DIR=$OPENCV_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
-	export PATH=$OPENCV_INSTALL_DIR/bin:$PATH
-	export LD_LIBRARY_PATH=$OPENCV_INSTALL_DIR/lib:$LD_LIBRARY_PATH
-	export PKG_CONFIG_PATH=$OPENCV_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
+	export PATH=$PATH:$OPENCV_INSTALL_DIR/bin
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENCV_INSTALL_DIR/lib
+	export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$OPENCV_INSTALL_DIR/lib/pkgconfig
 		
 	echo '### OPENCV ###' >> "$SETVARS_FILE"
 	echo 'export OPENCV_DIR='"$OPENCV_INSTALL_DIR" >> "$SETVARS_FILE"
-	echo 'export PATH=$OPENCV_DIR/bin:$PATH' >> "$SETVARS_FILE"
-	echo 'export LD_LIBRARY_PATH=$OPENCV_DIR/lib:$LD_LIBRARY_PATH' >> "$SETVARS_FILE"
-	echo 'export PKG_CONFIG_PATH=$OPENCV_DIR/lib/pkgconfig:$PKG_CONFIG_PATH' >> "$SETVARS_FILE"
+	echo 'export PATH=$PATH:$OPENCV_DIR/bin' >> "$SETVARS_FILE"
+	echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENCV_DIR/lib' >> "$SETVARS_FILE"
+	echo 'export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$OPENCV_DIR/lib/pkgconfig' >> "$SETVARS_FILE"
 	echo '' >> "$SETVARS_FILE"
 
 	#echo "Remove OpenCV source ($OPENCV_SRC_DIR) & build directories ($OPENCV_BUILD_DIR) ..."
@@ -552,6 +495,74 @@ From: ubuntu:16.04
 	# Install required R packages (this is an exampl, replace with my R modules...)
   #R --slave -e 'install.packages("devtools", repos="https://cloud.r-project.org/")'
   #R --slave -e 'devtools::install_github("rstudio/tensorflow")'
+
+
+	#################################
+	###    CASA NRAO
+	#################################
+	export CASA_VERSION="5.1.1" # 
+	export CASA_VERSION_MINOR="5"
+	export CASA_URL="https://casa.nrao.edu/download/distro/linux/release/el7/casa-release-$CASA_VERSION-$CASA_VERSION_MINOR"'.el7.tar.gz'
+	export CASA_UNTAR_DIR="casa-release-$CASA_VERSION-$CASA_VERSION_MINOR.el7"
+	export CASA_BASE_DIR="$SOFTDIR/CASA"
+	export CASA_INSTALL_DIR="$CASA_BASE_DIR/v$CASA_VERSION"
+	export CASASRC="$CASA_BASE_DIR/.casa"
+	export CASA_LOGON_FILE="$CASASRC/init.py"
+	export CASALD_LIBRARY_PATH="$LD_LIBRARY_PATH"
+
+	echo "Creating CASA base dir $CASA_BASE_DIR ..."
+	mkdir -p $CASA_BASE_DIR
+
+	echo "Creating CASA init dir $CASASRC with other write permission..."
+	mkdir -p $CASASRC
+	chmod -R a+rwx $CASASRC
+
+	# Download & Unzip CASA
+	ls -la $SOFTDIR_SRCS
+	if [ ! -d "$CASA_INSTALL_DIR" ] ; then
+		# Download CASA
+		echo "Downloading CASA from url $CASA_URL ..."
+		cd "$SOFTDIR_TAR"
+		wget -nc -O "casa$CASA_VERSION.tar.gz" "$CASA_URL" 
+	
+		# Untar CASA
+		echo "Untar CASA in casa install directory $CASA_BASE_DIR ..."
+		cd "$CASA_BASE_DIR"
+		tar -xzvf "$SOFTDIR_TAR/casa$CASA_VERSION.tar.gz"
+	
+		# Rename CASA
+		echo "Renaming untar dir $CASA_UNTAR_DIR in v$CASA_VERSION"
+		mv "$CASA_UNTAR_DIR" "v$CASA_VERSION"
+	fi 
+
+	# Setting environment variables
+	# NB: Do not add CASA python lib dir to PYTHONPATH because it will screw up python (changes site.py with CASA site.py)
+	# NB: Never ever put CASA stuff paths before your system path!!!
+	# NB: Define CASALD_LIBRARY_PATH and set it to LD_LIBRARY_PATH because casa startup script has a nasty statement that removes your LD_LIBRARY_PATH (yes, CASA sucks)!!!
+	echo "Setting CASA env variables..."
+	echo "export CASAPATH=$CASA_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
+	echo "export CASA_DIR=$CASA_INSTALL_DIR" >> $SINGULARITY_ENVIRONMENT
+	echo "export CASASRC=$CASASRC" >> $SINGULARITY_ENVIRONMENT
+	echo "export CASALD_LIBRARY_PATH=$CASALD_LIBRARY_PATH" >> $SINGULARITY_ENVIRONMENT
+	export PATH=$PATH:$CASA_INSTALL_DIR/bin
+	##export PYTHONPATH=$PYTHONPATH:$CASA_INSTALL_DIR/lib/python2.7:$CASA_INSTALL_DIR/lib/python2.7/__casac__
+	
+	echo '### CASA ###' >> "$SETVARS_FILE"
+	echo 'export CASAPATH='"$CASA_INSTALL_DIR" >> "$SETVARS_FILE"
+	echo 'export CASA_DIR='"$CASA_INSTALL_DIR" >> "$SETVARS_FILE"
+	echo 'export CASASRC='"$CASASRC" >> "$SETVARS_FILE"
+	echo 'export PATH=$PATH:$CASA_DIR/bin' >> "$SETVARS_FILE"
+	echo 'export CASALD_LIBRARY_PATH=$LD_LIBRARY_PATH' >> "$SETVARS_FILE"
+	##echo 'export PYTHONPATH=$PYTHONPATH:$CASA_INSTALL_DIR/lib/python2.7' >> "$SETVARS_FILE"
+	echo '' >> "$SETVARS_FILE"
+
+	# Create logon file under $CASASRC dir
+	echo "Creating CASA logon file in $CASASRC dir ..."
+	echo 'import sys' > "$CASA_LOGON_FILE"
+	echo "sys.path = [''] + sys.path" >> "$CASA_LOGON_FILE"
+
+	echo "Remove CASA tar file $SOFTDIR_TAR/casa$CASA_VERSION.tar.gz ..."
+	rm -rf $SOFTDIR_TAR/casa$CASA_VERSION.tar.gz || :
 
 	#################################
 	###    SET ENV VARS
